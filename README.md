@@ -47,3 +47,8 @@ pytest -s tests
 3. [ ] LightGBM support
 4. [ ] deep learning support
 
+
+
+## Reference 
+
+1. [Cookiecutter Data Science Project](https://drivendata.github.io/cookiecutter-data-science/)

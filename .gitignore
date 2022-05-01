@@ -134,3 +134,6 @@ data/raw_data/*
 data/debug_data/*
 logs/*
 model_training/*
+
+# directories to keep
+!.gitkeep
