@@ -4,3 +4,5 @@
 # @Disc    :
 
 code_base_dir = './'
+
+california_target = 'MedHouseVal'

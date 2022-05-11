@@ -2,12 +2,12 @@
 # @File    : XGBRegressionPipeline.py
 # @Author  : Hua Guo
 # @Disc    :
-from xgboost.sklearn import XGBRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
+from sklearn.linear_model import Ridge
 
 
-from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
+from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, MinMaxScaler
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error
 from sklearn.compose import make_column_transformer, make_column_selector, ColumnTransformer
 import logging
@@ -24,9 +24,9 @@ from src.utils.plot_utils import plot_feature_importances
 logging.getLogger(__name__)
 
 
-class XGBRegressionPipeline(BasePipeline):
+class RidgeReg(BasePipeline):
     def __init__(self, model_path: str, model_training=False, model_params={}, **kwargs):
-        super(XGBRegressionPipeline, self).__init__(model_path=model_path,  model_training=model_training)
+        super(RidgeReg, self).__init__(model_path=model_path, model_training=model_training)
         if self.model_training:
             self.pipeline = None
         else:
@@ -53,9 +53,9 @@ class XGBRegressionPipeline(BasePipeline):
         assert sparse_feature is not None
         data_transfomer = ColumnTransformer(
             transformers=[
-                ('onehot', OneHotEncoder(handle_unknown='ignore'), sparse_feature)
+                ('onehot', OneHotEncoder(handle_unknown='ignore'), sparse_feature),
                 # , ('ordianl', OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=100), list(set(sparse_feature)-set(onehot_feature)))
-                , ('passthrough', 'passthrough', list(set(X.columns)-set(sparse_feature)))
+                ('minmax', MinMaxScaler(clip=True), list(set(X.columns)-set(sparse_feature)))
             ]
             ,  remainder='passthrough'
         )
@@ -67,27 +67,24 @@ class XGBRegressionPipeline(BasePipeline):
         train_X = data_transfomer.transform(train_X)
         logging.info(f"Train data shape after data process: {train_X.shape}")
         grid_search_dict = train_params.get('grid_search_dict', None)
-        # if grid_search_dict is not None:
-        #     logging.info(f"Grid searching...")
-        #     begin = time.time()
-        #     self.model_params = self.grid_search_parms(X=train_X, y=train_y, parameters=grid_search_dict)
-        #     end = time.time()
-        #     logging.info(f"Time consumed: {round((end-begin)/60, 3)}mins")
-        self.xgb = XGBRegressor(**self.model_params)
+        self.model = Ridge()
         self.pipeline = Pipeline(pipeline_lst)
         if train_valid:
             eval_X = test_X.copy()
             eval_y = test_y.copy()
             eval_X = data_transfomer.transform(eval_X)
             logging.info(f"Eval data shape after data process: {eval_X.shape}")
-            self.xgb.fit(X=train_X, y=train_y, verbose=True, eval_metric=['mae']
-                         , eval_set=[[train_X, train_y], [eval_X, eval_y]], early_stopping_rounds=10)
-            print(f"Model params are {self.xgb.get_params()}")
-            self._plot_eval_result()
+            self.model.fit(X=train_X, y=train_y)
+            predict_train = self.model.predict(X=train_X)
+            predict_eval = self.model.predict(X=eval_X)
+            mae_train = mean_absolute_error(y_true=train_y, y_pred=predict_train)
+            mae_eval = mean_absolute_error(y_true=eval_y, y_pred=predict_eval)
+            logging.info(f"Train MAE: {mae_train}; Eval MAE: {mae_eval}")
+            # print(f"Model params are {self.model.get_params()}")
+            # self._plot_eval_result()
         else:
-            self.xgb.fit(X=train_X, y=train_y, verbose=True, eval_metric=['mae']
-                         , eval_set=[[train_X, train_y]], early_stopping_rounds=10)
-        pipeline_lst.append(('model', self.xgb))
+            self.model.fit(X=train_X, y=train_y)
+        pipeline_lst.append(('model', self.model))
         self.pipeline = Pipeline(pipeline_lst)
         if train_valid:
             self.eval(X=test_X, y=test_y, default_fig_dir=os.path.join(self.eval_result_path, 'eval_data'))
@@ -108,16 +105,17 @@ class XGBRegressionPipeline(BasePipeline):
         )[0]
 
     def _plot_eval_result(self, metric='mae'):
-        # retrieve performance metrics
-        results = self.xgb.evals_result()
-        # plot learning curves
-        plt.plot(results['validation_0'][metric], label='train')
-        plt.plot(results['validation_1'][metric], label='test')
-        # show the legend
-        plt.legend()
-        # show the plot
-        plt.savefig(os.path.join(self.eval_result_path, 'xgb_train_eval.png'))
+        # # retrieve performance metrics
+        # # results = self.model.evals_result()
+        # # plot learning curves
+        # plt.plot(results['validation_0'][metric], label='train')
+        # plt.plot(results['validation_1'][metric], label='test')
+        # # show the legend
+        # plt.legend()
+        # # show the plot
+        # plt.savefig(os.path.join(self.eval_result_path, 'xgb_train_eval.png'))
         # plt.show()
+        pass
 
     def eval(self, X: pd.DataFrame, y: pd.DataFrame, default_fig_dir=None, importance=True, performance_result_file='performance.txt', **kwargs) -> Tuple[float, float]:
         if default_fig_dir is None:
@@ -126,10 +124,35 @@ class XGBRegressionPipeline(BasePipeline):
             fig_dir = default_fig_dir
         self._check_dir(fig_dir)
         logging.info(f"Saving eval result to {fig_dir}")
+        transfomers = self.pipeline[self.data_transfomer_name].transformers
+        feature_cols = []
+        for name, encoder, features_lst in transfomers:
+            if name == self.onehot_encoder_name and len(features_lst)>0:
+                original_ls = features_lst
+                features_lst = self.pipeline[self.data_transfomer_name].named_transformers_[self.onehot_encoder_name].get_feature_names()
+                for lst_idx, col in enumerate(features_lst):
+                    index, cate= col.split('_')
+                    index = int(index[1:])
+                    original = original_ls[index]
+                    features_lst[lst_idx] = '_'.join([cate, original])
+            feature_cols += list(features_lst)
+        logging.info(f"features num: {len(feature_cols)}")
+        logging.info(f"feature_col is {feature_cols}")
+
+        df = pd.DataFrame(
+            {
+                'feature': feature_cols,
+                'coef': self.pipeline['model'].coef_,
+                'abs_coef': abs(self.pipeline['model'].coef_)
+            }
+        ).sort_values('abs_coef', ascending=False)
+        df.to_csv(os.path.join(fig_dir, 'coef.csv'), index=False)
+
         # if importance:
         #     show_feature_num = min(30, len(X.columns))
         #     plot_feature_importances(model=self.pipeline['model'], feature_cols=list(X.columns), show_feature_num=show_feature_num,
         #                              fig_dir=fig_dir)
+
         predicted = self.predict(X=X.copy())
         mae = mean_absolute_error(y_true=y, y_pred=predicted)
         mape = mean_absolute_percentage_error(y_true=y, y_pred=predicted)

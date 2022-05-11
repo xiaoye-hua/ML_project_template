@@ -3,12 +3,15 @@
 # @Author  : Hua Guo
 # @Disc    :
 from src.Pipeline.XGBRegressionPipeline import XGBRegressionPipeline
-from src.FeatureCreator.XGBoostFeatureCreator import XGBoostFeatureCreator
+from src.FeatureCreator.FeatureCreator import FeatureCreator
 from src.Pipeline.XGBClassifierPipeline import XGBClassifierPipeline
 from src.Pipeline.XGBRegClaPipeline import XGBRegClaPipeline
+from src.Pipeline.RidgeReg import RidgeReg
+
+from src.config import california_target
 
 debug = False
-dir_mark = "v1_0501_xgb_reg"
+dir_mark = "california_housing_reg"
 
 if debug:
     raw_data_path = 'data/debug'
@@ -25,7 +28,7 @@ train_config_detail = {
         'cla_dir': 'v1_0501_xgb_cla'
         , 'reg_dir': 'v1_0501_xgb_reg'
         , 'pipeline_class': XGBRegClaPipeline
-        , 'feature_creator': XGBoostFeatureCreator
+        , 'feature_creator': FeatureCreator
         , 'train_valid': True
         , 'sparse_features': [
         ]
@@ -36,14 +39,16 @@ train_config_detail = {
         , 'data_dir_mark': 'v1_0501_clareg'
     },
 
-    "v1_0501_xgb_cla": {
-        "pipeline_class": XGBClassifierPipeline
-        , 'feature_creator': XGBoostFeatureCreator
+    "california_housing_reg": {
+        "pipeline_class": XGBRegressionPipeline
+        , 'feature_creator': FeatureCreator
         , 'train_valid': True
         , 'sparse_features': []
-        , 'dense_features': [        ]
+        , 'dense_features': [
+            'MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup',
+                   'Latitude', 'Longitude'
+        ]
         # , 'feature_clean_func': clean_feature
-        , 'target_col': ''
-        , 'data_dir_mark': 'v1_0501_xgb_clareg'
+        , 'target_col': california_target
     },
 }

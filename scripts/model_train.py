@@ -29,7 +29,7 @@ feature_clean_func = train_config_detail[dir_mark].get('feature_clean_func', Non
 
 additional_train_params = train_config_detail[dir_mark].get('additional_train_params', {})
 
-target_col = train_config_detail[dir_mark].get('target_col', reg_target_col)
+target_col = train_config_detail[dir_mark]['target_col']
 feature_used = dense_features + sparse_features
 # assert feature_used is not None
 if not train_config_detail[dir_mark].get('data_dir_mark', False):
@@ -69,7 +69,7 @@ if debug:
 else:
     model_params = {
         'learning_rate':0.01
-        , 'n_estimators': 10000
+        , 'n_estimators': 100
     #     'learning_rate':0.01
     #     , 'n_estimators': 1000
     # , 'max_depth': 8
