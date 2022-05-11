@@ -15,12 +15,12 @@ import joblib
 import os
 import logging
 
-from src.BaseClass.BasePipeline import BasePipeline
+from src.BaseClass.Pipeline import GBTPipeline
 from src.utils.plot_utils import plot_feature_importances, binary_classification_eval
 from src.utils.grid_search import grid_search_parms
 
 
-class XGBClassifierPipeline(BasePipeline):
+class XGBClassifierPipeline(GBTPipeline):
     def __init__(self, model_path: str, model_training=True, model_params={}, **kwargs) -> None:
         super(XGBClassifierPipeline, self).__init__(model_training=model_training, model_path=model_path)
         if self.model_training:
@@ -119,21 +119,6 @@ class XGBClassifierPipeline(BasePipeline):
             filename=os.path.join(self.model_path, self.model_file_name)
         )[0]
         logging.info(file_name)
-        pmml_file = os.path.join(self.model_path, 'pipeline.pmml')
-
-    def eval(self, X: pd.DataFrame, y: pd.DataFrame, default_fig_dir=None, importance=True,  **kwargs) -> None:
-        if default_fig_dir is None:
-            fig_dir = self.eval_result_path
-        else:
-            fig_dir = default_fig_dir
-        self._check_dir(fig_dir)
-        # transformer = self.pipeline['data_transformer']
-        # feature_names = transformer.get_feature_names()
-        # if importance:
-        #     plot_feature_importances(model=self.pipeline['model'], feature_cols=feature_names, show_feature_num=len(feature_names), fig_dir=fig_dir)
-        predict_prob = self.pipeline.predict_proba(X=X.copy())[:, 1]
-        binary_classification_eval(test_y=y, predict_prob=predict_prob, fig_dir=fig_dir)
-
 
     def _plot_eval_result(self):
         # retrieve performance metrics

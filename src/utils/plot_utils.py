@@ -29,29 +29,29 @@ def count_plot(df: pd.DataFrame, col: str, xytext=(0, 0), show_details=True, reg
         df = df.copy()
         plt.figure(figsize=(20, 6))
         unique_num = len(df[col].unique())
+        x_order = df.groupby(col)[col].count().sort_values(ascending=False).index.to_list()
         if unique_num > max_cate:
             print(f"Unique num too huge: {unique_num}; cut to {10} categories")
             df[col] = pd.qcut(df[col], 10)
-        ax = sns.countplot(data=df, x=col)
+        ax = sns.countplot(data=df, x=col, order=x_order)
         if show_details:
             for bar in ax.patches:
-                ax.annotate('%{:.2f}\n{:.0f}'.format(100*bar.get_height()/len(df),bar.get_height()), (bar.get_x() + bar.get_width() / 2,
-                            bar.get_height()), ha='center', va='center',
+                ax.annotate('%{:.2f}\n{:.0f}'.format(100 * bar.get_height() / len(df), bar.get_height()),
+                            (bar.get_x() + bar.get_width() / 2,
+                             bar.get_height()), ha='center', va='center',
                             size=11, xytext=xytext,
                             textcoords='offset points')
         if regression_target is not None:
-            target_col = 'mean_'+regression_target
-            stats = df.groupby(col).agg({regression_target: [np.mean, np.max, np.min]})[regression_target].reset_index().rename(columns={'mean':target_col})
+            target_col = 'mean_' + regression_target
+            stats = df.groupby(col).agg({regression_target: [np.mean, np.max, np.min]})[
+                regression_target].reset_index().rename(columns={'mean': target_col})
             ax_twin = ax.twinx()
-            # ax_twin = \
-            sns.pointplot(x=col, y=target_col, data=stats,
-                          color='black', legend='avg_delivery_time',
-                          order=np.sort(df[col].dropna().unique()),
-                          linewidth=0.1,
-                          )
-        plt.show()
-        plt.figure(figsize=(20, 6))
-        sns.boxplot(x=col, y=target_col, data=df)
+            ax_twin = \
+                sns.pointplot(x=col, y=target_col, data=stats,
+                              color='black', #legend='avg_delivery_time',
+                              linewidth=0.1,
+                              order=x_order
+                              )
         plt.show()
     except:
         return

@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from typing import Tuple
 import time
 
-from src.BaseClass.BasePipeline import BasePipeline
+from src.BaseClass.Pipeline import BasePipeline
 from src.utils.plot_utils import plot_feature_importances
 logging.getLogger(__name__)
 

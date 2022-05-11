@@ -19,12 +19,12 @@ import matplotlib.pyplot as plt
 from typing import Tuple
 import time
 
-from src.BaseClass.BasePipeline import BasePipeline
+from src.BaseClass.Pipeline import GBTPipeline
 from src.utils.plot_utils import plot_feature_importances
 logging.getLogger(__name__)
 
 
-class XGBRegressionPipeline(BasePipeline):
+class XGBRegressionPipeline(GBTPipeline):
     def __init__(self, model_path: str, model_training=False, model_params={}, **kwargs):
         super(XGBRegressionPipeline, self).__init__(model_path=model_path,  model_training=model_training)
         if self.model_training:
