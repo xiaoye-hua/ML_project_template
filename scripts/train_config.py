@@ -7,11 +7,12 @@ from src.FeatureCreator.FeatureCreator import FeatureCreator
 from src.Pipeline.XGBClassifierPipeline import XGBClassifierPipeline
 from src.Pipeline.XGBRegClaPipeline import XGBRegClaPipeline
 from src.Pipeline.RidgeReg import RidgeReg
+from src.config import breast_cancel_traget
 
 from src.config import california_target
 
 debug = False
-dir_mark = "california_housing_reg"
+dir_mark = "iris_cla"
 
 if debug:
     raw_data_path = 'data/debug'
@@ -51,4 +52,24 @@ train_config_detail = {
         # , 'feature_clean_func': clean_feature
         , 'target_col': california_target
     },
+    "iris_cla": {
+        "pipeline_class": XGBClassifierPipeline
+        , 'feature_creator': FeatureCreator
+        , 'train_valid': True
+        , 'sparse_features': []
+        , 'dense_features': [
+            'mean radius', 'mean texture', 'mean perimeter', 'mean area',
+                   'mean smoothness', 'mean compactness', 'mean concavity',
+                   'mean concave points', 'mean symmetry', 'mean fractal dimension',
+                   'radius error', 'texture error', 'perimeter error', 'area error',
+                   'smoothness error', 'compactness error', 'concavity error',
+                   'concave points error', 'symmetry error', 'fractal dimension error',
+                   'worst radius', 'worst texture', 'worst perimeter', 'worst area',
+                   'worst smoothness', 'worst compactness', 'worst concavity',
+                   'worst concave points', 'worst symmetry', 'worst fractal dimension'
+        ]
+        # , 'feature_clean_func': clean_feature
+        , 'target_col': breast_cancel_traget
+    },
+
 }

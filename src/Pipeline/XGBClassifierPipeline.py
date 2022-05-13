@@ -15,12 +15,12 @@ import joblib
 import os
 import logging
 
-from src.BaseClass.Pipeline import GBTPipeline
+from src.BaseClass.Pipeline import BasePipeline
 from src.utils.plot_utils import plot_feature_importances, binary_classification_eval
 from src.utils.grid_search import grid_search_parms
 
 
-class XGBClassifierPipeline(GBTPipeline):
+class XGBClassifierPipeline(BasePipeline):
     def __init__(self, model_path: str, model_training=True, model_params={}, **kwargs) -> None:
         super(XGBClassifierPipeline, self).__init__(model_training=model_training, model_path=model_path)
         if self.model_training:
@@ -147,3 +147,34 @@ class XGBClassifierPipeline(GBTPipeline):
         print(xgb_grid.best_score_)
         print(xgb_grid.best_params_)
         return xgb_grid.best_params_
+
+    def eval(self, X: pd.DataFrame, y: pd.DataFrame, default_fig_dir=None, importance=True,  **kwargs) -> None:
+        if default_fig_dir is None:
+            fig_dir = self.eval_result_path
+        else:
+            fig_dir = default_fig_dir
+        self._check_dir(fig_dir)
+        # transformer = self.pipeline['data_transformer']
+        # feature_names = transformer.get_feature_names()
+        transfomers = self.pipeline[self.data_transfomer_name].transformers
+        feature_cols = []
+        for name, encoder, features_lst in transfomers:
+            if name == self.onehot_encoder_name and len(features_lst)!=0:
+                original_ls = features_lst
+                features_lst = self.pipeline[self.data_transfomer_name].named_transformers_[self.onehot_encoder_name].get_feature_names()
+                for lst_idx, col in enumerate(features_lst):
+                    index, cate= col.split('_')
+                    index = int(index[1:])
+                    original = original_ls[index]
+                    features_lst[lst_idx] = '_'.join([cate, original])
+            feature_cols += list(features_lst)
+        logging.info(f"features num: {len(feature_cols)}")
+        logging.info(f"feature_col is {feature_cols}")
+        if importance:
+            show_feature_num = min(30, len(X.columns))
+            plot_feature_importances(model=self.pipeline['model'],
+                                     feature_cols=feature_cols,
+                                     show_feature_num=show_feature_num,
+                                     fig_dir=fig_dir)
+        predict_prob = self.pipeline.predict_proba(X=X.copy())[:, 1]
+        binary_classification_eval(test_y=y, predict_prob=predict_prob, fig_dir=fig_dir)

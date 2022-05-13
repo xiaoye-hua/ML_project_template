@@ -43,37 +43,37 @@ class BasePipeline(metaclass=ABCMeta):
             os.makedirs(directory)
 
 
-class GBTPipeline(metaclass=BasePipeline):
-    """
-    BasePipeline class for XGBoost ang LightGBM
-    """
-    def eval(self, X: pd.DataFrame, y: pd.DataFrame, default_fig_dir=None, importance=True,  **kwargs) -> None:
-        if default_fig_dir is None:
-            fig_dir = self.eval_result_path
-        else:
-            fig_dir = default_fig_dir
-        self._check_dir(fig_dir)
-        # transformer = self.pipeline['data_transformer']
-        # feature_names = transformer.get_feature_names()
-        transfomers = self.pipeline[self.data_transfomer_name].transformers
-        feature_cols = []
-        for name, encoder, features_lst in transfomers:
-            if name == self.onehot_encoder_name:
-                original_ls = features_lst
-                features_lst = self.pipeline[self.data_transfomer_name].named_transformers_[self.onehot_encoder_name].get_feature_names()
-                for lst_idx, col in enumerate(features_lst):
-                    index, cate= col.split('_')
-                    index = int(index[1:])
-                    original = original_ls[index]
-                    features_lst[lst_idx] = '_'.join([cate, original])
-            feature_cols += list(features_lst)
-        logging.info(f"features num: {len(feature_cols)}")
-        logging.info(f"feature_col is {feature_cols}")
-        if importance:
-            show_feature_num = min(30, len(X.columns))
-            plot_feature_importances(model=self.pipeline['model'],
-                                     feature_cols=feature_cols,
-                                     show_feature_num=show_feature_num,
-                                     fig_dir=fig_dir)
-        predict_prob = self.pipeline.predict_proba(X=X.copy())[:, 1]
-        binary_classification_eval(test_y=y, predict_prob=predict_prob, fig_dir=fig_dir)
+# class GBTPipeline(metaclass=BasePipeline):
+#     """
+#     BasePipeline class for XGBoost ang LightGBM
+#     """
+#     def eval(self, X: pd.DataFrame, y: pd.DataFrame, default_fig_dir=None, importance=True,  **kwargs) -> None:
+#         if default_fig_dir is None:
+#             fig_dir = self.eval_result_path
+#         else:
+#             fig_dir = default_fig_dir
+#         self._check_dir(fig_dir)
+#         # transformer = self.pipeline['data_transformer']
+#         # feature_names = transformer.get_feature_names()
+#         transfomers = self.pipeline[self.data_transfomer_name].transformers
+#         feature_cols = []
+#         for name, encoder, features_lst in transfomers:
+#             if name == self.onehot_encoder_name:
+#                 original_ls = features_lst
+#                 features_lst = self.pipeline[self.data_transfomer_name].named_transformers_[self.onehot_encoder_name].get_feature_names()
+#                 for lst_idx, col in enumerate(features_lst):
+#                     index, cate= col.split('_')
+#                     index = int(index[1:])
+#                     original = original_ls[index]
+#                     features_lst[lst_idx] = '_'.join([cate, original])
+#             feature_cols += list(features_lst)
+#         logging.info(f"features num: {len(feature_cols)}")
+#         logging.info(f"feature_col is {feature_cols}")
+#         if importance:
+#             show_feature_num = min(30, len(X.columns))
+#             plot_feature_importances(model=self.pipeline['model'],
+#                                      feature_cols=feature_cols,
+#                                      show_feature_num=show_feature_num,
+#                                      fig_dir=fig_dir)
+#         predict_prob = self.pipeline.predict_proba(X=X.copy())[:, 1]
+#         binary_classification_eval(test_y=y, predict_prob=predict_prob, fig_dir=fig_dir)

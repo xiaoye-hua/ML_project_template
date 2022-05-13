@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @File    : data_cvt.py
+# @File    : reg_data_cvt.py
 # @Author  : Hua Guo
 # @Disc    :
 
@@ -10,7 +10,7 @@ import logging
 from scripts.train_config import train_config_detail #, train_end_date, train_begin_date, eval_end_date, eval_begin_date, test_begin_date, test_end_date
 from scripts.train_config import raw_data_path, dir_mark, debug #, debug_date, offer_served_data_source
 from src.utils import check_create_dir
-from sklearn.datasets import fetch_california_housing
+from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
 feature_creator_class = train_config_detail[dir_mark]['feature_creator']
@@ -18,6 +18,7 @@ model_params = {}
 dense_features = train_config_detail[dir_mark].get('dense_features', None)
 sparse_features = train_config_detail[dir_mark].get('sparse_features', None)
 feature_used = dense_features + sparse_features
+target_col = train_config_detail[dir_mark]['target_col']
 # print(f"training date: {train_begin_date}, {train_end_date}")
 # print(f"eval date: {eval_begin_date}, {eval_end_date}")
 # print(f"test date: {test_begin_date}, {test_end_date}")
@@ -34,8 +35,10 @@ logging.info(f"Reading features...")
 # feature_creator =
 
 
-data, target = fetch_california_housing(as_frame=True, return_X_y=True)
-data['MedHouseVal'] = target
+data, target = load_breast_cancer(as_frame=True, return_X_y=True)
+data[target_col] = target
+logging.info(data.columns)
+logging.info(data.info())
 train, test = train_test_split(data, test_size=0.15)
 train, eval = train_test_split(train, test_size=0.15)
 target_raw_data_dir = os.path.join(raw_data_path, dir_mark)

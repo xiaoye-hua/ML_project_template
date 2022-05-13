@@ -21,7 +21,7 @@ class FeatureCreator(BaseFeatureCreator):
     def get_features(self, df,  **kwargs) -> Tuple[pd.DataFrame, List[str]]:
         self.feature_data = df
         feature_func = [
-            self.get_seasonality_feature
+            # self.get_seasonality_feature
         ]
         for func in feature_func:
             func()
