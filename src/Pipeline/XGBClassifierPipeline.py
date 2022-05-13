@@ -111,7 +111,7 @@ class XGBClassifierPipeline(BasePipeline):
             self.eval(X=test_X, y=test_y, default_fig_dir=os.path.join(self.eval_result_path, 'eval_data'))
 
     def predict(self, X) -> pd.DataFrame:
-        return self.pipeline.predict_proba(X=X)[:, 1]
+        return self.pipeline.predict(X=X)[:, 1]
 
     def save_pipeline(self) -> None:
         file_name = joblib.dump(
@@ -176,5 +176,5 @@ class XGBClassifierPipeline(BasePipeline):
                                      feature_cols=feature_cols,
                                      show_feature_num=show_feature_num,
                                      fig_dir=fig_dir)
-        predict_prob = self.pipeline.predict_proba(X=X.copy())[:, 1]
+        predict_prob = self.pipeline.predict(X=X.copy())[:, 1]
         binary_classification_eval(test_y=y, predict_prob=predict_prob, fig_dir=fig_dir)

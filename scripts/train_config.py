@@ -6,6 +6,7 @@ from src.Pipeline.XGBRegressionPipeline import XGBRegressionPipeline
 from src.FeatureCreator.FeatureCreator import FeatureCreator
 from src.Pipeline.XGBClassifierPipeline import XGBClassifierPipeline
 from src.Pipeline.XGBRegClaPipeline import XGBRegClaPipeline
+from src.Pipeline.XGBoostLR import XGBoostLR
 from src.Pipeline.RidgeReg import RidgeReg
 from src.config import breast_cancel_traget
 
@@ -53,7 +54,7 @@ train_config_detail = {
         , 'target_col': california_target
     },
     "iris_cla": {
-        "pipeline_class": XGBClassifierPipeline
+        "pipeline_class": XGBoostLR #XGBClassifierPipeline
         , 'feature_creator': FeatureCreator
         , 'train_valid': True
         , 'sparse_features': []

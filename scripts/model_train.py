@@ -104,6 +104,7 @@ train_params = {
     , 'eval_y': eval_df[target_col]
     # , 'grid_search_dict': grid_search_dict
     , 'sparse_features': sparse_features
+    , 'dense_features': dense_features
 }
 
 train_params.update(additional_train_params)
