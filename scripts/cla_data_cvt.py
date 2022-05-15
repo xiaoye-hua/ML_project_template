@@ -45,7 +45,6 @@ target_raw_data_dir = os.path.join(raw_data_path, dir_mark)
 check_create_dir(directory=target_raw_data_dir)
 
 
-
 fc = feature_creator_class()
 # feature_creator
 import time
@@ -65,6 +64,8 @@ end = time.time()
 print(f"Test data time: {round((end-begin)/3600, 3)} hours")
 
 logging.info(f"Saving data to dir: {target_raw_data_dir}")
+logging.info(train_df.columns)
+logging.info(train_df.info())
 train_df.to_csv(os.path.join(target_raw_data_dir, 'train.csv'), index=False)
 eval_df.to_csv(os.path.join(target_raw_data_dir, 'eval.csv'), index=False)
 test_df.to_csv(os.path.join(target_raw_data_dir, 'test.csv'), index=False)

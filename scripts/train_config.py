@@ -4,6 +4,7 @@
 # @Disc    :
 from src.Pipeline.XGBRegressionPipeline import XGBRegressionPipeline
 from src.FeatureCreator.FeatureCreator import FeatureCreator
+from src.Pipeline.DeepFMPipeline import DeepFMPipeline
 from src.Pipeline.XGBClassifierPipeline import XGBClassifierPipeline
 from src.Pipeline.XGBRegClaPipeline import XGBRegClaPipeline
 from src.Pipeline.XGBoostLR import XGBoostLR
@@ -13,7 +14,8 @@ from src.config import breast_cancel_traget
 from src.config import california_target
 
 debug = False
-dir_mark = "iris_cla"
+dir_mark = "iris_deepfm_cla"
+# dir_mark = 'california_deepfm_reg'
 
 if debug:
     raw_data_path = 'data/debug'
@@ -40,7 +42,6 @@ train_config_detail = {
         , 'target_col': ''
         , 'data_dir_mark': 'v1_0501_clareg'
     },
-
     "california_housing_reg": {
         "pipeline_class": XGBRegressionPipeline
         , 'feature_creator': FeatureCreator
@@ -71,6 +72,45 @@ train_config_detail = {
         ]
         # , 'feature_clean_func': clean_feature
         , 'target_col': breast_cancel_traget
+    },
+    "iris_deepfm_cla": {
+        "pipeline_class": DeepFMPipeline
+        , 'task': 'binary'
+        , 'feature_creator': FeatureCreator
+        , 'epochs': 2
+        , 'batch_size': 20
+        , 'dense_to_sparse': True
+        , 'train_valid': True
+        , 'sparse_features': []
+        , 'dense_features': [
+                'mean_radius', 'mean_texture', 'mean_perimeter', 'mean_area',
+               'mean_smoothness', 'mean_compactness', 'mean_concavity',
+               'mean_concave_points', 'mean_symmetry', 'mean_fractal_dimension',
+               'radius_error', 'texture_error', 'perimeter_error', 'area_error',
+               'smoothness_error', 'compactness_error', 'concavity_error',
+               'concave_points_error', 'symmetry_error', 'fractal_dimension_error',
+               'worst_radius', 'worst_texture', 'worst_perimeter', 'worst_area',
+               'worst_smoothness', 'worst_compactness', 'worst_concavity',
+               'worst_concave_points', 'worst_symmetry', 'worst_fractal_dimension',
+        ]
+        # , 'feature_clean_func': clean_feature
+        , 'target_col': breast_cancel_traget
+    },
+    "california_deepfm_reg": {
+        "pipeline_class": DeepFMPipeline
+        , 'task': 'regression'
+        , 'feature_creator': FeatureCreator
+        , 'epochs': 2
+        , 'batch_size': 20
+        , 'dense_to_sparse': True
+        , 'train_valid': True
+        , 'sparse_features': []
+        , 'dense_features': [
+            'MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup',
+            'Latitude', 'Longitude'
+        ]
+        # , 'feature_clean_func': clean_feature
+        , 'target_col': california_target
     },
 
 }

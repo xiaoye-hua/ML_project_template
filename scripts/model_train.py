@@ -26,8 +26,11 @@ train_valid = train_config_detail[dir_mark].get('train_valid', False)
 dense_features = train_config_detail[dir_mark].get('dense_features', None)
 sparse_features = train_config_detail[dir_mark].get('sparse_features', None)
 feature_clean_func = train_config_detail[dir_mark].get('feature_clean_func', None)
-
+epochs = train_config_detail[dir_mark].get('epochs', None)
+batch_size = train_config_detail[dir_mark].get('batch_size', None)
+dense_to_sparse = train_config_detail[dir_mark].get('dense_to_sparse', None)
 additional_train_params = train_config_detail[dir_mark].get('additional_train_params', {})
+task = train_config_detail[dir_mark].get('task', None) # params for deepFM
 
 target_col = train_config_detail[dir_mark]['target_col']
 feature_used = dense_features + sparse_features
@@ -96,8 +99,9 @@ grid_search_dict = {
 }
 
 train_params = {
-    'epoch': 3
-    , 'batch_size': 512
+    'epoches': epochs
+    , 'batch_size': batch_size
+    , 'dense_to_sparse': dense_to_sparse
     , "df_for_encode_train": df_for_encode_train[feature_cols]
     , 'train_valid': train_valid
     , 'eval_X': eval_df[feature_cols]
@@ -110,7 +114,7 @@ train_params = {
 train_params.update(additional_train_params)
 
 logging.info(f"Model training...")
-pipeline = pipeline_class(model_path=model_path, model_training=True, model_params=model_params)
+pipeline = pipeline_class(model_path=model_path, model_training=True, model_params=model_params, task=task)
 logging.info(f"Origin train data shape : {train_df[feature_cols].shape}")
 pipeline.train(X=train_df[feature_cols], y=train_df[target_col], train_params=train_params)
 logging.info(f"Model eval...")

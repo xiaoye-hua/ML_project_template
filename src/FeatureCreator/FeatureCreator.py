@@ -18,10 +18,14 @@ class FeatureCreator(BaseFeatureCreator):
     def get_seasonality_feature(self):
         pass
 
+    def _clean_col_name(self):
+        map_dict = {col: col.replace(' ', '_') for col in self.feature_data.columns}
+        self.feature_data = self.feature_data.rename(columns=map_dict)
+
     def get_features(self, df,  **kwargs) -> Tuple[pd.DataFrame, List[str]]:
         self.feature_data = df
         feature_func = [
-            # self.get_seasonality_feature
+            self._clean_col_name
         ]
         for func in feature_func:
             func()
