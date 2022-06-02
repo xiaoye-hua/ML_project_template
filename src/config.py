@@ -7,3 +7,5 @@ code_base_dir = './'
 
 california_target = 'MedHouseVal'
 breast_cancel_traget = 'target'
+
+log_dir = 'logs'

@@ -6,15 +6,24 @@ import pandas as pd
 import os
 import logging
 import pickle
+from datetime import datetime
 
 from scripts.train_config import train_config_detail
 from scripts.train_config import raw_data_path, dir_mark, debug, model_dir
+from src.config import log_dir
 
 # =============== Config ============
-
+curDT = datetime.now()
+date_time = curDT.strftime("%Y%m%d%H")
+current_file = os.path.basename(__file__).split('.')[0]
+log_file = '_'.join([current_file, date_time, '.log'])
 logging.basicConfig(level='INFO',
                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-                    datefmt='%a, %d %b %Y %H:%M:%S',)
+                    datefmt='%a, %d %b %Y %H:%M:%S',
+                    filename=os.path.join(log_dir, log_file)
+                    )
+console = logging.StreamHandler()
+logging.getLogger().addHandler(console)
 
 
 pipeline_class = train_config_detail[dir_mark]['pipeline_class']

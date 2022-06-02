@@ -6,10 +6,12 @@
 import pandas as pd
 import os
 import logging
+from datetime import datetime
 
 from scripts.train_config import train_config_detail #, train_end_date, train_begin_date, eval_end_date, eval_begin_date, test_begin_date, test_end_date
 from scripts.train_config import raw_data_path, dir_mark, debug #, debug_date, offer_served_data_source
 from src.utils import check_create_dir
+from src.config import log_dir
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
@@ -23,9 +25,17 @@ target_col = train_config_detail[dir_mark]['target_col']
 # print(f"eval date: {eval_begin_date}, {eval_end_date}")
 # print(f"test date: {test_begin_date}, {test_end_date}")
 
+curDT = datetime.now()
+date_time = curDT.strftime("%Y%m%d%H")
+current_file = os.path.basename(__file__).split('.')[0]
+log_file = '_'.join([current_file, date_time, '.log'])
 logging.basicConfig(level='INFO',
                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-                    datefmt='%a, %d %b %Y %H:%M:%S',)
+                    datefmt='%a, %d %b %Y %H:%M:%S',
+                    filename=os.path.join(log_dir, log_file)
+                    )
+console = logging.StreamHandler()
+logging.getLogger().addHandler(console)
 
 
 model_path = os.path.join('model_training/', dir_mark)
