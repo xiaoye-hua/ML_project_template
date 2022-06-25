@@ -3,7 +3,9 @@
 # @Author  : Hua Guo
 # @Disc    :
 from xgboost.sklearn import XGBClassifier
-from sklearn.pipeline import Pipeline
+# from sklearn.pipeline import Pipeline
+from sklearn2pmml import PMMLPipeline as Pipeline
+from sklearn2pmml import sklearn2pmml
 from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
 from sklearn.compose import make_column_transformer, make_column_selector, ColumnTransformer
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -17,7 +19,6 @@ import logging
 
 from src.BaseClass.Pipeline import BasePipeline
 from src.utils.plot_utils import plot_feature_importances, binary_classification_eval
-from src.utils.grid_search import grid_search_parms
 
 
 class XGBClassifierPipeline(BasePipeline):
@@ -32,6 +33,7 @@ class XGBClassifierPipeline(BasePipeline):
         self._check_dir(self.model_path)
         self._check_dir(self.eval_result_path)
         self.eval_metric = 'auc'
+        self.eval_metric_lst = [self.eval_metric, 'logloss']
 
     def load_pipeline(self) -> None:
         self.pipeline = joblib.load(
@@ -39,6 +41,10 @@ class XGBClassifierPipeline(BasePipeline):
         )
 
     def train(self, X: pd.DataFrame, y: pd.DataFrame, train_params: dict) -> None:
+        total_len = y.shape[0]
+        positve_len = sum(y)
+        negative_len = total_len - positve_len
+        logging.info(f"positive/negative = {positve_len}/{total_len}={round(positve_len/total_len, 3)}")
         train_valid = train_params.get("train_valid", False)
         if train_valid:
             if train_params.get('eval_X', None) is not None:
@@ -52,29 +58,28 @@ class XGBClassifierPipeline(BasePipeline):
         pipeline_lst = []
         df_for_encode_train = train_params['df_for_encode_train']
 
-        # onehot_feature = train_params.get('onehot_feature', None)
-        sparse_feature = train_params.get('sparse_features', None)
-        # assert onehot_feature is not None
-        assert sparse_feature is not None
-
-        # data_transfomer = make_column_transformer(
-        #     (OneHotEncoder(),  make_column_selector(dtype_include=np.object))
-        #     , (OrdinalEncoder(), make_column_selector(dtype_include=np.bool))
-        #     , remainder='passthrough'
-        # )
-
+        onehot_encode = train_params.get('onehot_encode', [])
+        ordinal_encode = train_params.get('ordinal_encode', [])
+        passthrough_features = list(set(X.columns)-set(onehot_encode)-set(ordinal_encode))
+        transfomer_lst = []
+        if onehot_encode != []:
+            transfomer_lst.append(
+                (self.onehot_encoder_name, OneHotEncoder(handle_unknown='ignore'), onehot_encode)
+            )
+        if ordinal_encode != []:
+            transfomer_lst.append(
+                ('ordianl', OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-100), ordinal_encode)
+            )
+        if passthrough_features != []:
+            transfomer_lst.append(
+                ('passthrough', 'passthrough',passthrough_features)
+               )
         data_transfomer = ColumnTransformer(
-            transformers=[
-                ('onehot', OneHotEncoder(handle_unknown='ignore'), sparse_feature)
-                , ('passthrough', 'passthrough', list(set(X.columns) - set(sparse_feature)))
-            ]
-            ,  remainder='passthrough'
+            transformers=transfomer_lst
         )
-
-
         data_transfomer.fit_transform(df_for_encode_train)
         pipeline_lst.append(
-            ('data_transformer', data_transfomer)
+            (self.data_transfomer_name, data_transfomer)
         )
         train_X = data_transfomer.transform(train_X)
         logging.info(f"Train data shape after data process: {train_X.shape}")
@@ -95,13 +100,13 @@ class XGBClassifierPipeline(BasePipeline):
             eval_X = test_X.copy()
             eval_y = test_y.copy()
             eval_X = data_transfomer.transform(eval_X)
-            self.xgb.fit(X=train_X, y=train_y, verbose=True, eval_metric=self.eval_metric
+            self.xgb.fit(X=train_X, y=train_y, verbose=True, eval_metric=self.eval_metric_lst
                          , eval_set=[[train_X, train_y], [eval_X, eval_y]]
                          ,early_stopping_rounds=10
                          )
             self._plot_eval_result()
         else:
-            self.xgb.fit(X=train_X, y=train_y, verbose=True, eval_metric=self.eval_metric
+            self.xgb.fit(X=train_X, y=train_y, verbose=True, eval_metric=self.eval_metric_lst
                          , eval_set=[[train_X, train_y]]
                          ,early_stopping_rounds=10)
         print(f"Model params are {self.xgb.get_params()}")
@@ -111,7 +116,7 @@ class XGBClassifierPipeline(BasePipeline):
             self.eval(X=test_X, y=test_y, default_fig_dir=os.path.join(self.eval_result_path, 'eval_data'))
 
     def predict(self, X) -> pd.DataFrame:
-        return self.pipeline.predict(X=X)[:, 1]
+        return self.pipeline.predict_proba(X=X)[:, 1]
 
     def save_pipeline(self) -> None:
         file_name = joblib.dump(
@@ -119,34 +124,9 @@ class XGBClassifierPipeline(BasePipeline):
             filename=os.path.join(self.model_path, self.model_file_name)
         )[0]
         logging.info(file_name)
-
-    def _plot_eval_result(self):
-        # retrieve performance metrics
-        results = self.xgb.evals_result()
-        # plot learning curves
-        plt.plot(results['validation_0'][self.eval_metric], label='train')
-        plt.plot(results['validation_1'][self.eval_metric], label='test')
-        # show the legend
-        plt.legend()
-        # show the plot
-        plt.savefig(os.path.join(self.eval_result_path, 'xgb_train_eval.png'))
-        # plt.show()
-
-    def grid_search_parms(self, X: pd.DataFrame, y: pd.DataFrame, parameters: dict) -> dict:
-        xgb = XGBClassifier()
-
-        xgb_grid = GridSearchCV(xgb,
-                                parameters,
-                                cv=2,
-                                n_jobs=5,
-                                verbose=3,
-                                 scoring='roc_auc',
-                                return_train_score=True
-                                )
-        xgb_grid.fit(X, y)
-        print(xgb_grid.best_score_)
-        print(xgb_grid.best_params_)
-        return xgb_grid.best_params_
+        pmml_file = os.path.join(self.model_path, 'pipeline.pmml')
+        sklearn2pmml(self.pipeline, pmml_file)
+        logging.info(f"Saving pipeline to {pmml_file}")
 
     def eval(self, X: pd.DataFrame, y: pd.DataFrame, default_fig_dir=None, importance=True,  **kwargs) -> None:
         if default_fig_dir is None:
@@ -171,10 +151,67 @@ class XGBClassifierPipeline(BasePipeline):
         logging.info(f"features num: {len(feature_cols)}")
         logging.info(f"feature_col is {feature_cols}")
         if importance:
-            show_feature_num = min(30, len(X.columns))
+            show_feature_num = min(30, len(feature_cols))
             plot_feature_importances(model=self.pipeline['model'],
                                      feature_cols=feature_cols,
                                      show_feature_num=show_feature_num,
                                      fig_dir=fig_dir)
-        predict_prob = self.pipeline.predict(X=X.copy())[:, 1]
+            logging.info(f"Ploting SHAP value:")
+            self.plot_shap_importance(X=X, columns_names=feature_cols, fig_dir=fig_dir, show_feature_num=show_feature_num)
+        predict_prob = self.pipeline.predict_proba(X=X.copy())[:, 1]
         binary_classification_eval(test_y=y, predict_prob=predict_prob, fig_dir=fig_dir)
+
+    def plot_shap_importance(self, X, columns_names, show_feature_num, fig_dir=None):
+        import shap
+        import scipy
+        explainer = shap.Explainer(self.pipeline['model'])
+        features = self.pipeline[self.data_transfomer_name].transform(X.copy())
+        # if isinstance(features, scipy.sparse._csr.csr_matrix):
+        #     features = features.toarray()
+        df = pd.DataFrame(features, columns=columns_names)
+        shap_values = explainer(df)
+        plt.figure()
+        shap.plots.beeswarm(shap_values, max_display=show_feature_num, show=False)
+        plt.title("Shap Feature Importance")
+        if fig_dir is not None:
+            plt.savefig(os.path.join(fig_dir, 'shap_feature_importance.png'), bbox_inches = 'tight')
+            # plt.savefig(os.path.join(fig_dir, 'shap_feature_importance.pdf'))
+        else:
+            plt.show()
+
+        plt.figure()
+        shap.plots.bar(shap_values.abs.mean(0), show=False, max_display=show_feature_num)
+        plt.title("Shap Feature Importance Bar plot")
+        if fig_dir is not None:
+            plt.savefig(os.path.join(fig_dir, 'shap_feature_importance_bar.png'), bbox_inches = 'tight')
+        else:
+            plt.show()
+
+    def _plot_eval_result(self):
+        # retrieve performance metrics
+        results = self.xgb.evals_result()
+        # plot learning curves
+        for metric in self.eval_metric_lst:
+            plt.plot(results['validation_0'][metric], label='train')
+            plt.plot(results['validation_1'][metric], label='test')
+            # show the legend
+            plt.legend()
+            # show the plot
+            plt.savefig(os.path.join(self.eval_result_path, f'xgb_train_eval_{metric}.png'))
+        # plt.show()
+
+    def grid_search_parms(self, X: pd.DataFrame, y: pd.DataFrame, parameters: dict) -> dict:
+        xgb = XGBClassifier()
+
+        xgb_grid = GridSearchCV(xgb,
+                                parameters,
+                                cv=2,
+                                n_jobs=5,
+                                verbose=3,
+                                 scoring='roc_auc',
+                                return_train_score=True
+                                )
+        xgb_grid.fit(X, y)
+        print(xgb_grid.best_score_)
+        print(xgb_grid.best_params_)
+        return xgb_grid.best_params_

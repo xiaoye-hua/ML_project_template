@@ -10,7 +10,7 @@ from src.Pipeline.XGBRegressionPipeline import XGBRegressionPipeline
 
 
 class XGBRegClaPipeline(XGBRegressionPipeline):
-    def __init__(self, model_path: str, reg_model_path: str, cla_model_path: str, model_training=False, model_params={}, cla_threshold=0.5):
+    def __init__(self, model_path: str, reg_model_path: str, cla_model_path: str, model_training=False, model_params={}, cla_threshold=0.5, **kwargs):
         super(XGBRegClaPipeline, self).__init__(model_path=reg_model_path,  model_training=model_training)
         self.reg_pipeline = self._load_pipeline(model_path=reg_model_path)
         self.cla_pipeline = self._load_pipeline(model_path=cla_model_path)

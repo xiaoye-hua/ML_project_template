@@ -20,7 +20,7 @@ conda env create -f environment.yml
 conda activate revenue_model
 
 # save conda environment setting
-conda env export --from-history > environment.yml
+conda env export --no-builds > environment.yml
 ```
 ### Step 2: Model training, eval, or code test
 

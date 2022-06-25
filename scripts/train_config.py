@@ -14,7 +14,7 @@ from src.config import breast_cancel_traget
 from src.config import california_target
 
 debug = False
-dir_mark = "iris_deepfm_cla"
+dir_mark = "iris_cla"
 # dir_mark = 'california_deepfm_reg'
 
 if debug:
@@ -39,8 +39,8 @@ train_config_detail = {
         , 'dense_features': [
         ]
         # , 'feature_clean_func': clean_map_feature
-        , 'target_col': ''
-        , 'data_dir_mark': 'v1_0501_clareg'
+        , 'target_col': breast_cancel_traget
+        # , 'data_dir_mark': 'v1_0501_clareg'
     },
     "california_housing_reg": {
         "pipeline_class": XGBRegressionPipeline
@@ -55,21 +55,20 @@ train_config_detail = {
         , 'target_col': california_target
     },
     "iris_cla": {
-        "pipeline_class": XGBoostLR #XGBClassifierPipeline
+        "pipeline_class": XGBClassifierPipeline
         , 'feature_creator': FeatureCreator
         , 'train_valid': True
         , 'sparse_features': []
-        , 'dense_features': [
-            'mean radius', 'mean texture', 'mean perimeter', 'mean area',
-                   'mean smoothness', 'mean compactness', 'mean concavity',
-                   'mean concave points', 'mean symmetry', 'mean fractal dimension',
-                   'radius error', 'texture error', 'perimeter error', 'area error',
-                   'smoothness error', 'compactness error', 'concavity error',
-                   'concave points error', 'symmetry error', 'fractal dimension error',
-                   'worst radius', 'worst texture', 'worst perimeter', 'worst area',
-                   'worst smoothness', 'worst compactness', 'worst concavity',
-                   'worst concave points', 'worst symmetry', 'worst fractal dimension'
-        ]
+        , 'dense_features':
+            ['mean_radius', 'mean_texture', 'mean_perimeter', 'mean_area',
+       'mean_smoothness', 'mean_compactness', 'mean_concavity',
+       'mean_concave_points', 'mean_symmetry', 'mean_fractal_dimension',
+       'radius_error', 'texture_error', 'perimeter_error', 'area_error',
+       'smoothness_error', 'compactness_error', 'concavity_error',
+       'concave_points_error', 'symmetry_error', 'fractal_dimension_error',
+       'worst_radius', 'worst_texture', 'worst_perimeter', 'worst_area',
+       'worst_smoothness', 'worst_compactness', 'worst_concavity',
+       'worst_concave_points', 'worst_symmetry', 'worst_fractal_dimension']
         # , 'feature_clean_func': clean_feature
         , 'target_col': breast_cancel_traget
     },
@@ -82,17 +81,15 @@ train_config_detail = {
         , 'dense_to_sparse': True
         , 'train_valid': True
         , 'sparse_features': []
-        , 'dense_features': [
-                'mean_radius', 'mean_texture', 'mean_perimeter', 'mean_area',
-               'mean_smoothness', 'mean_compactness', 'mean_concavity',
-               'mean_concave_points', 'mean_symmetry', 'mean_fractal_dimension',
-               'radius_error', 'texture_error', 'perimeter_error', 'area_error',
-               'smoothness_error', 'compactness_error', 'concavity_error',
-               'concave_points_error', 'symmetry_error', 'fractal_dimension_error',
-               'worst_radius', 'worst_texture', 'worst_perimeter', 'worst_area',
-               'worst_smoothness', 'worst_compactness', 'worst_concavity',
-               'worst_concave_points', 'worst_symmetry', 'worst_fractal_dimension',
-        ]
+        , 'dense_features': ['mean_radius', 'mean_texture', 'mean_perimeter', 'mean_area',
+       'mean_smoothness', 'mean_compactness', 'mean_concavity',
+       'mean_concave_points', 'mean_symmetry', 'mean_fractal_dimension',
+       'radius_error', 'texture_error', 'perimeter_error', 'area_error',
+       'smoothness_error', 'compactness_error', 'concavity_error',
+       'concave_points_error', 'symmetry_error', 'fractal_dimension_error',
+       'worst_radius', 'worst_texture', 'worst_perimeter', 'worst_area',
+       'worst_smoothness', 'worst_compactness', 'worst_concavity',
+       'worst_concave_points', 'worst_symmetry', 'worst_fractal_dimension']
         # , 'feature_clean_func': clean_feature
         , 'target_col': breast_cancel_traget
     },
