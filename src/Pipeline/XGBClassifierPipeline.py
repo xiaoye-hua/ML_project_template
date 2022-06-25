@@ -143,7 +143,9 @@ class XGBClassifierPipeline(BasePipeline):
                 original_ls = features_lst
                 features_lst = self.pipeline[self.data_transfomer_name].named_transformers_[self.onehot_encoder_name].get_feature_names()
                 for lst_idx, col in enumerate(features_lst):
-                    index, cate= col.split('_')
+                    seg_lst = col.split('_')
+                    index = seg_lst[0]
+                    cate = '_'.join(seg_lst[1:])
                     index = int(index[1:])
                     original = original_ls[index]
                     features_lst[lst_idx] = '_'.join([cate, original])
