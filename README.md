@@ -21,6 +21,10 @@ conda activate revenue_model
 
 # save conda environment setting
 conda env export --no-builds > environment.yml
+
+
+# create jupyter kernel
+python -m ipykernel install --user --name ml_project --display-name "Python3.8(ml_project)"
 ```
 ### Step 2: Model training, eval, or code test
 
