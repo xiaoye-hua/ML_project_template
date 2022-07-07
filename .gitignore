@@ -137,3 +137,4 @@ model_training/*
 
 # directories to keep
 !.gitkeep
+mlruns/*

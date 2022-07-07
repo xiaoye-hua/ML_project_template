@@ -1,0 +1,9 @@
+name: ml_template
+
+conda_env: environment.yaml
+
+entry_points:
+  main:
+    command: "python scripts/model_train.py"
+  eval:
+    command: "python train.py"

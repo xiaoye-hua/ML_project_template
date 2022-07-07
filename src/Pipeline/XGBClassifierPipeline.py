@@ -16,6 +16,8 @@ import time
 import joblib
 import os
 import logging
+import mlflow
+import mlflow.xgboost
 
 from src.BaseClass.Pipeline import BasePipeline
 from src.utils.plot_utils import plot_feature_importances, binary_classification_eval
@@ -93,6 +95,7 @@ class XGBClassifierPipeline(BasePipeline):
 
         # self.model_params['scale_pos_weight'] = (len(train_y)-sum(train_y))/len(train_y)
         print(self.model_params)
+        mlflow.xgboost.autolog()
         self.xgb = XGBClassifier(**self.model_params)
         print(f"train data feature shape: {train_X.shape}")
         print(f"train data label shape: {train_y.shape}")
