@@ -18,18 +18,19 @@ import os
 import logging
 import mlflow
 import mlflow.xgboost
+from pypmml import Model
 
 from src.BaseClass.Pipeline import BasePipeline
 from src.utils.plot_utils import plot_feature_importances, binary_classification_eval
 
 
 class XGBClassifierPipeline(BasePipeline):
-    def __init__(self, model_path: str, model_training=True, model_params={}, **kwargs) -> None:
+    def __init__(self, model_path: str, model_training=True, model_params={}, load_pmml=False, **kwargs) -> None:
         super(XGBClassifierPipeline, self).__init__(model_training=model_training, model_path=model_path)
-        if self.model_training:
-            self.pipeline = None
-        else:
-            self.load_pipeline()
+        self.pipeline = None
+        self.pmml_pipeline = None
+        if not self.model_training:
+            self.load_pipeline(load_pmml=load_pmml)
         self.model_params = model_params
         self.model_file_name = 'pipeline.pkl'
         self._check_dir(self.model_path)
@@ -37,10 +38,12 @@ class XGBClassifierPipeline(BasePipeline):
         self.eval_metric = 'auc'
         self.eval_metric_lst = [self.eval_metric, 'logloss']
 
-    def load_pipeline(self) -> None:
+    def load_pipeline(self, load_pmml=False) -> None:
         self.pipeline = joblib.load(
             filename=os.path.join(self.model_path, self.model_file_name)
         )
+        if load_pmml:
+            self.pmml_pipeline = Model.fromFile(os.path.join(self.model_path, 'pipeline.pmml'))
 
     def train(self, X: pd.DataFrame, y: pd.DataFrame, train_params: dict) -> None:
         total_len = y.shape[0]
@@ -118,8 +121,12 @@ class XGBClassifierPipeline(BasePipeline):
         if train_valid:
             self.eval(X=test_X, y=test_y, default_fig_dir=os.path.join(self.eval_result_path, 'eval_data'))
 
-    def predict(self, X) -> pd.DataFrame:
-        return self.pipeline.predict_proba(X=X)[:, 1]
+    def predict(self, X, pmml=False) -> pd.DataFrame:
+        if pmml:
+            pmml_res = self.pmml_pipeline.predict(X)
+            return pmml_res['probability(1)'].values
+        else:
+            return self.pipeline.predict_proba(X=X)[:, 1]
 
     def save_pipeline(self) -> None:
         file_name = joblib.dump(
@@ -131,7 +138,7 @@ class XGBClassifierPipeline(BasePipeline):
         sklearn2pmml(self.pipeline, pmml_file)
         logging.info(f"Saving pipeline to {pmml_file}")
 
-    def eval(self, X: pd.DataFrame, y: pd.DataFrame, default_fig_dir=None, importance=True,  **kwargs) -> None:
+    def eval(self, X: pd.DataFrame, y: pd.DataFrame, default_fig_dir=None, importance=True, compare_pmml=False, **kwargs) -> None:
         if default_fig_dir is None:
             fig_dir = self.eval_result_path
         else:
@@ -165,6 +172,15 @@ class XGBClassifierPipeline(BasePipeline):
             self.plot_shap_importance(X=X, columns_names=feature_cols, fig_dir=fig_dir, show_feature_num=show_feature_num)
         predict_prob = self.pipeline.predict_proba(X=X.copy())[:, 1]
         binary_classification_eval(test_y=y, predict_prob=predict_prob, fig_dir=fig_dir)
+        if compare_pmml:
+            threshold_95 = 0.0001
+            X['predict'] = self.predict(X)
+            X['pmml_predict'] = self.predict(X, pmml=True)
+            X['abs_diff'] = round(abs(X['predict'] - X['pmml_predict']), 2)
+            X['abs_diff'].describe([0.05*i for i in range(20)])
+            logging.info(X['abs_diff'].describe([0.05*i for i in range(20)]))
+            p95 = np.percentile(X['abs_diff'].tolist(), 95)
+            assert p95 < threshold_95, f"95 percentile should be smaller than {p95}"
 
     def plot_shap_importance(self, X, columns_names, show_feature_num, fig_dir=None):
         import shap

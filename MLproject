@@ -5,5 +5,7 @@ conda_env: environment.yaml
 entry_points:
   main:
     command: "python scripts/model_train.py"
-  eval:
-    command: "python train.py"
+  cla_data_cvt:
+    command: "python scripts/cla_data_cvt.py"
+  jupyter:
+    command:

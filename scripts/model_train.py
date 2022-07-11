@@ -127,9 +127,14 @@ logging.info(f"Model training...")
 pipeline = pipeline_class(model_path=model_path, model_training=True, model_params=model_params, task=task)
 logging.info(f"Origin train data shape : {train_df[feature_cols].shape}")
 pipeline.train(X=train_df[feature_cols], y=train_df[target_col], train_params=train_params)
+logging.info(f"Model saving to {model_path}..")
+pipeline.save_pipeline()
+logging.info(f"Loading model from {model_path}")
+new_pipeline = pipeline_class(model_path=model_path, model_training=False, model_params={}
+                              , load_pmml=True)
 logging.info(f"Model eval...")
 logging.info(f"There are {len(feature_cols)} features:")
 logging.info(f"{feature_cols}")
-pipeline.eval(X=test_df[feature_cols], y=test_df[target_col], performance_result_file='all_data_performance.txt')
-logging.info(f"Model saving to {model_path}..")
-pipeline.save_pipeline()
+new_pipeline.eval(X=test_df[feature_cols], y=test_df[target_col],
+              performance_result_file='all_data_performance.txt',
+              compare_pmml=True)

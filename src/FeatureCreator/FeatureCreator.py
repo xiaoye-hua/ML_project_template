@@ -22,10 +22,25 @@ class FeatureCreator(BaseFeatureCreator):
         map_dict = {col: col.replace(' ', '_') for col in self.feature_data.columns}
         self.feature_data = self.feature_data.rename(columns=map_dict)
 
+    def add_0(self):
+        """
+        PMML file debug
+        :return:
+        """
+
+        length = len(self.feature_data)
+        zero_num = int(length*0.5)
+        cols = ['zero_0', 'zero_1']
+        for col in cols:
+            self.feature_data[col] = np.random.random(length) * 20 - 10
+            zero_lst = list(set(np.random.choice(list(range(length)), zero_num)))
+            self.feature_data[col].iloc[zero_lst] = 0.0
+
     def get_features(self, df,  **kwargs) -> Tuple[pd.DataFrame, List[str]]:
         self.feature_data = df
         feature_func = [
-            self._clean_col_name
+            self._clean_col_name,
+            self.add_0
         ]
         for func in feature_func:
             func()

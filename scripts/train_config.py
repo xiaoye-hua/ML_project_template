@@ -60,7 +60,9 @@ train_config_detail = {
         , 'train_valid': True
         , 'sparse_features': []
         , 'dense_features':
-            ['mean_radius', 'mean_texture', 'mean_perimeter', 'mean_area',
+            [
+            'zero_0', 'zero_1',
+                'mean_radius', 'mean_texture', 'mean_perimeter', 'mean_area',
        'mean_smoothness', 'mean_compactness', 'mean_concavity',
        'mean_concave_points', 'mean_symmetry', 'mean_fractal_dimension',
        'radius_error', 'texture_error', 'perimeter_error', 'area_error',
