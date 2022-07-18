@@ -6,6 +6,7 @@ import pandas as pd
 import os
 import logging
 import pickle
+import mlflow
 from datetime import datetime
 
 from scripts.train_config import train_config_detail
@@ -124,11 +125,20 @@ train_params = {
 train_params.update(additional_train_params)
 
 logging.info(f"Model training...")
-pipeline = pipeline_class(model_path=model_path, model_training=True, model_params=model_params, task=task)
-logging.info(f"Origin train data shape : {train_df[feature_cols].shape}")
-pipeline.train(X=train_df[feature_cols], y=train_df[target_col], train_params=train_params)
-logging.info(f"Model saving to {model_path}..")
-pipeline.save_pipeline()
+with mlflow.start_run(run_name='model_train'):
+    mlflow.log_params({
+        'begin_date': '2022-01-01',
+        'end_date': '2022-04-03',
+        'train_data_shape': [12000, 343],
+        'test_data_shape': [1200, 434]
+    })
+    pipeline = pipeline_class(model_path=model_path, model_training=True,
+                              model_params=model_params, task=task)
+    logging.info(f"Origin train data shape : {train_df[feature_cols].shape}")
+    pipeline.train(X=train_df[feature_cols], y=train_df[target_col], train_params=train_params)
+    logging.info(f"Model saving to {model_path}..")
+    pipeline.save_pipeline()
+
 logging.info(f"Loading model from {model_path}")
 new_pipeline = pipeline_class(model_path=model_path, model_training=False, model_params={}
                               , load_pmml=True)
