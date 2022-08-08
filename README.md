@@ -16,7 +16,7 @@ Template and utils code for machine learning project
 
 ### Step 1: environment setup
 ```shell script
-conda env create -f environment.yml
+conda env create -f environment.yaml
 conda activate revenue_model
 
 # save conda environment setting
