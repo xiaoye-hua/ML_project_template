@@ -56,7 +56,40 @@ def count_plot(df: pd.DataFrame, col: str, xytext=(0, 0), show_details=True, reg
     except:
         return
 
-def plot_feature_importances(model: XGBModel, feature_cols: List[str], show_feature_num=10, figsize=(20, 10), fig_dir=None):
+
+def feature_importance_onehot_combined(original_feature_cols: List[str],
+                                       imp_df: pd.DataFrame,
+                                       original_onehot_feature_cols: List[str]
+                                       , file_path=None) -> pd.DataFrame:
+    new_imp_dict = {col: 0 for col in original_feature_cols}
+
+    for row in imp_df.iterrows():
+        feature = row[1]['features']
+        imp = row[1]['importance']
+
+        if 'oso_region' in feature or 'binary_feature' in feature or 'cate_feature' in feature:
+            potential_name = '_'.join(feature.split('_')[-2:])
+        else:
+            potential_name = '_'.join(feature.split('_')[1:])
+        if potential_name in original_onehot_feature_cols:
+            new_imp_dict[potential_name] += imp
+        else:
+            new_imp_dict[feature] += imp
+    #     print(row)
+    new_imp_df = pd.DataFrame({
+        'features': new_imp_dict.keys(),
+        'importance': new_imp_dict.values()
+    })
+    new_imp_df = new_imp_df.sort_values('importance', ascending=False)
+    if file_path is not None:
+        new_imp_df.to_csv(file_path, index=False)
+    return new_imp_df
+
+def plot_feature_importances(model: XGBModel, feature_cols: List[str], show_feature_num=10, figsize=(20, 10),
+                             fig_dir=None,
+                             onehot_feature_lst=None,
+                             original_feature_lst=None
+                             ):
     """
     plot feature importance of xgboost model
     Args:
@@ -75,7 +108,13 @@ def plot_feature_importances(model: XGBModel, feature_cols: List[str], show_feat
     plt.title("Feature Importance")
     if fig_dir is not None:
         plt.savefig(os.path.join(fig_dir, 'feature_importance.png'))
-        pd.DataFrame(all_feature_imp).to_csv(os.path.join(fig_dir, 'feature_imp.csv'))
+        imp_df = pd.DataFrame(all_feature_imp).reset_index().rename(columns={'index': 'features', 0: 'importance'})
+        imp_df.to_csv(os.path.join(fig_dir, 'feature_imp.csv'))
+        if onehot_feature_lst is not None and original_feature_lst is not None:
+            feature_importance_onehot_combined(original_feature_cols=original_feature_lst,
+                                               imp_df=imp_df,
+                                               original_onehot_feature_cols=onehot_feature_lst,
+                                               file_path=os.path.join(fig_dir, 'FI_onehot_combined.csv'))
     else:
         plt.show()
 

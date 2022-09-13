@@ -36,11 +36,17 @@ class FeatureCreator(BaseFeatureCreator):
             zero_lst = list(set(np.random.choice(list(range(length)), zero_num)))
             self.feature_data[col].iloc[zero_lst] = 0.0
 
+    def add_sparse_features(self):
+        self.feature_data['binary_feature'] = np.random.choice([True, False], size=len(self.feature_data))
+        self.feature_data['cate_feature'] = np.random.choice(['US', "Europe", 'Asian', 'Other'],
+                                                             size=len(self.feature_data))
+
     def get_features(self, df,  **kwargs) -> Tuple[pd.DataFrame, List[str]]:
         self.feature_data = df
         feature_func = [
             self._clean_col_name,
-            self.add_0
+            self.add_0,
+            self.add_sparse_features
         ]
         for func in feature_func:
             func()

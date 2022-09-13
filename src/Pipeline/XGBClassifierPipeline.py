@@ -3,6 +3,7 @@
 # @Author  : Hua Guo
 # @Disc    :
 from xgboost.sklearn import XGBClassifier
+import xgboost
 # from sklearn.pipeline import Pipeline
 from sklearn2pmml import PMMLPipeline as Pipeline
 from sklearn2pmml import sklearn2pmml
@@ -19,9 +20,12 @@ import logging
 import mlflow
 import mlflow.xgboost
 from pypmml import Model
+import logging
+logger = logging.getLogger(__name__)
 
 from src.BaseClass.Pipeline import BasePipeline
-from src.utils.plot_utils import plot_feature_importances, binary_classification_eval
+from src.Pipeline.utils import log_evaluation
+from src.utils.plot_utils import plot_feature_importances, binary_classification_eval, feature_importance_onehot_combined
 
 
 class XGBClassifierPipeline(BasePipeline):
@@ -37,6 +41,7 @@ class XGBClassifierPipeline(BasePipeline):
         self._check_dir(self.eval_result_path)
         self.eval_metric = 'auc'
         self.eval_metric_lst = [self.eval_metric, 'logloss']
+        self.onehot_feature_lst = None
 
     def load_pipeline(self, load_pmml=False) -> None:
         self.pipeline = joblib.load(
@@ -64,6 +69,7 @@ class XGBClassifierPipeline(BasePipeline):
         df_for_encode_train = train_params['df_for_encode_train']
 
         onehot_encode = train_params.get('onehot_encode', [])
+        self.onehot_feature_lst = onehot_encode
         ordinal_encode = train_params.get('ordinal_encode', [])
         passthrough_features = list(set(X.columns)-set(onehot_encode)-set(ordinal_encode))
         transfomer_lst = []
@@ -106,15 +112,18 @@ class XGBClassifierPipeline(BasePipeline):
             eval_X = test_X.copy()
             eval_y = test_y.copy()
             eval_X = data_transfomer.transform(eval_X)
-            self.xgb.fit(X=train_X, y=train_y, verbose=True, eval_metric=self.eval_metric_lst
+            self.xgb.fit(X=train_X, y=train_y, verbose=False, eval_metric=self.eval_metric_lst
                          , eval_set=[[train_X, train_y], [eval_X, eval_y]]
                          ,early_stopping_rounds=10
+                         , callbacks=[log_evaluation(1, True)]
                          )
             self._plot_eval_result()
         else:
-            self.xgb.fit(X=train_X, y=train_y, verbose=True, eval_metric=self.eval_metric_lst
+            self.xgb.fit(X=train_X, y=train_y, verbose=False, eval_metric=self.eval_metric_lst
                          , eval_set=[[train_X, train_y]]
-                         ,early_stopping_rounds=10)
+                         ,early_stopping_rounds=10
+                         , callbacks=[log_evaluation(1, True)]
+                         )
         print(f"Model params are {self.xgb.get_params()}")
         pipeline_lst.append(('model', self.xgb))
         self.pipeline = Pipeline(pipeline_lst)
@@ -147,8 +156,10 @@ class XGBClassifierPipeline(BasePipeline):
         # transformer = self.pipeline['data_transformer']
         # feature_names = transformer.get_feature_names()
         transfomers = self.pipeline[self.data_transfomer_name].transformers
-        feature_cols = []
+        final_feature_lst = []
+        original_feature_list = []
         for name, encoder, features_lst in transfomers:
+            original_feature_list += list(features_lst)
             if name == self.onehot_encoder_name and len(features_lst)!=0:
                 original_ls = features_lst
                 features_lst = self.pipeline[self.data_transfomer_name].named_transformers_[self.onehot_encoder_name].get_feature_names()
@@ -159,17 +170,22 @@ class XGBClassifierPipeline(BasePipeline):
                     index = int(index[1:])
                     original = original_ls[index]
                     features_lst[lst_idx] = '_'.join([cate, original])
-            feature_cols += list(features_lst)
-        logging.info(f"features num: {len(feature_cols)}")
-        logging.info(f"feature_col is {feature_cols}")
+            final_feature_lst += list(features_lst)
+        logging.info(f"features num: {len(final_feature_lst)}")
+        logging.info(f"feature_col is {final_feature_lst}")
         if importance:
-            show_feature_num = min(30, len(feature_cols))
+            show_feature_num = min(30, len(final_feature_lst))
             plot_feature_importances(model=self.pipeline['model'],
-                                     feature_cols=feature_cols,
+                                     feature_cols=final_feature_lst,
                                      show_feature_num=show_feature_num,
-                                     fig_dir=fig_dir)
+                                     fig_dir=fig_dir,
+                                    onehot_feature_lst=self.onehot_feature_lst,
+                                     original_feature_lst=original_feature_list
+                                     )
             logging.info(f"Ploting SHAP value:")
-            self.plot_shap_importance(X=X, columns_names=feature_cols, fig_dir=fig_dir, show_feature_num=show_feature_num)
+            self.plot_shap_importance(X=X, columns_names=final_feature_lst, fig_dir=fig_dir, show_feature_num=show_feature_num,
+                                      onehot_feature_lst=self.onehot_feature_lst,
+                                      original_feature_lst=original_feature_list                                      )
         predict_prob = self.pipeline.predict_proba(X=X.copy())[:, 1]
         binary_classification_eval(test_y=y, predict_prob=predict_prob, fig_dir=fig_dir)
         mlflow.log_metrics({"log_loss": 0.98, "accuracy":0.099})
@@ -183,7 +199,10 @@ class XGBClassifierPipeline(BasePipeline):
             p95 = np.percentile(X['abs_diff'].tolist(), 95)
             assert p95 < threshold_95, f"95 percentile should be smaller than {p95}"
 
-    def plot_shap_importance(self, X, columns_names, show_feature_num, fig_dir=None):
+    def plot_shap_importance(self, X, columns_names, show_feature_num, fig_dir=None,
+                             onehot_feature_lst=None,
+                             original_feature_lst=None
+                             ):
         import shap
         import scipy
         explainer = shap.Explainer(self.pipeline['model'])
@@ -200,10 +219,24 @@ class XGBClassifierPipeline(BasePipeline):
             # plt.savefig(os.path.join(fig_dir, 'shap_feature_importance.pdf'))
         else:
             plt.show()
-
         plt.figure()
         shap.plots.bar(shap_values.abs.mean(0), show=False, max_display=show_feature_num)
         plt.title("Shap Feature Importance Bar plot")
+
+        shap.plots.bar(shap_values.abs.mean(0), show=False, max_display=show_feature_num)
+        plt.title("Shap Feature Importance Bar plot")
+        bar_df = pd.DataFrame({
+            'features': columns_names,
+            'importance': shap_values.abs.mean(0).values
+        }).sort_values('importance', ascending=False)
+        bar_df.to_csv(os.path.join(fig_dir, 'shap_bar_plot.csv'), index=False)
+        if onehot_feature_lst is not None and original_feature_lst is not None:
+            feature_importance_onehot_combined(original_feature_cols=original_feature_lst,
+                                               imp_df=bar_df,
+                                               original_onehot_feature_cols=onehot_feature_lst,
+                                               file_path=os.path.join(fig_dir, 'shap_bar_onehot_combined.csv'))
+
+
         if fig_dir is not None:
             plt.savefig(os.path.join(fig_dir, 'shap_feature_importance_bar.png'), bbox_inches = 'tight')
         else:

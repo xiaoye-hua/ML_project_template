@@ -58,7 +58,10 @@ train_config_detail = {
         "pipeline_class": XGBClassifierPipeline
         , 'feature_creator': FeatureCreator
         , 'train_valid': True
-        , 'sparse_features': []
+        , 'sparse_features': [
+            'binary_feature',
+            'cate_feature'
+        ]
         , 'dense_features':
             [
             'zero_0', 'zero_1',
@@ -71,6 +74,10 @@ train_config_detail = {
        'worst_radius', 'worst_texture', 'worst_perimeter', 'worst_area',
        'worst_smoothness', 'worst_compactness', 'worst_concavity',
        'worst_concave_points', 'worst_symmetry', 'worst_fractal_dimension']
+        , 'onehot': [
+            'binary_feature',
+            'cate_feature'
+        ]
         # , 'feature_clean_func': clean_feature
         , 'target_col': breast_cancel_traget
     },

@@ -29,7 +29,7 @@ dense_features = train_config_detail[dir_mark].get('dense_features', None)
 sparse_features = train_config_detail[dir_mark].get('sparse_features', None)
 feature_clean_func = train_config_detail[dir_mark].get('feature_clean_func', None)
 
-target_col = train_config_detail[dir_mark].get('target_col', reg_target_col)
+target_col = train_config_detail[dir_mark]['target_col']
 feature_used = dense_features + sparse_features
 # assert feature_used is not None
 if not train_config_detail[dir_mark].get('data_dir_mark', False):

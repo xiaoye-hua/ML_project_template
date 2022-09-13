@@ -35,6 +35,8 @@ model_params_config = train_config_detail[dir_mark].get('model_params', {})
 train_valid = train_config_detail[dir_mark].get('train_valid', False)
 dense_features = train_config_detail[dir_mark].get('dense_features', None)
 sparse_features = train_config_detail[dir_mark].get('sparse_features', None)
+onehot = train_config_detail[dir_mark].get('onehot', None)
+
 feature_clean_func = train_config_detail[dir_mark].get('feature_clean_func', None)
 additional_train_params = train_config_detail[dir_mark].get('additional_train_params', {})
 
@@ -120,6 +122,7 @@ train_params = {
     # , 'grid_search_dict': grid_search_dict
     , 'sparse_features': sparse_features
     , 'dense_features': dense_features
+    , 'onehot_encode': onehot
 }
 
 train_params.update(additional_train_params)
@@ -137,6 +140,8 @@ with mlflow.start_run(run_name='model_train'):
     logging.info(f"Origin train data shape : {train_df[feature_cols].shape}")
     pipeline.train(X=train_df[feature_cols], y=train_df[target_col], train_params=train_params)
     logging.info(f"Model saving to {model_path}..")
+    pipeline.eval(X=test_df[feature_cols], y=test_df[target_col],
+                  performance_result_file='all_data_performance.txt')
     pipeline.save_pipeline()
 
 logging.info(f"Loading model from {model_path}")
