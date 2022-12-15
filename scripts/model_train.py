@@ -12,6 +12,7 @@ from datetime import datetime
 from scripts.train_config import train_config_detail
 from scripts.train_config import raw_data_path, dir_mark, debug, model_dir
 from src.config import log_dir
+from src.DataProfiling import DataProfiling
 
 # =============== Config ============
 curDT = datetime.now()
@@ -54,6 +55,7 @@ else:
     target_raw_data_dir = os.path.join(raw_data_path, train_config_detail[dir_mark].get('data_dir_mark', False))
 logging.info(f"Reading data from {target_raw_data_dir}")
 
+data_profiling = True
 
 train_df = pd.read_csv(os.path.join(target_raw_data_dir, 'train.csv'))
 eval_df = pd.read_csv(os.path.join(target_raw_data_dir, 'eval.csv'))
@@ -66,6 +68,8 @@ if feature_clean_func is not None:
     eval_df = feature_clean_func(df=eval_df)
     test_df = feature_clean_func(df=test_df)
 
+
+
 df_for_encode_train = pd.concat([train_df, eval_df, test_df], axis=0)
 
 
@@ -74,7 +78,14 @@ assert set(feature_cols)==set(eval_feature_cols), f"Diff: {set(feature_cols)-set
 
 
 model_path = os.path.join(model_dir, dir_mark)
-
+if data_profiling:
+    profile_cols = feature_cols + [target_col]
+    profile_tool = DataProfiling(data_dir=os.path.join(model_path, 'profiling'))
+    train_profile = profile_tool.profiling_save(df=train_df[profile_cols], file_name='train.html')
+    test_profile = profile_tool.profiling_save(df=test_df[profile_cols], file_name='test.html')
+    eval_profile = profile_tool.profiling_save(df=eval_df[profile_cols], file_name='eval.html')
+    # profile_tool.compare_save(profile1=train_profile, profile2=test_profile, file_name='compare_train_test.html')
+    # profile_tool.compare_save(profile1=train_profile, profile2=eval_profile, file_name='compare_train_eval.html')
 
 logging.info(f"Reading features...")
 
